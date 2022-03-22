@@ -45,8 +45,13 @@ class Main(QtWidgets.QWidget):
         self.max.clicked.connect(self.maxmin)
         self.min.clicked.connect(lambda : self.showMinimized())
         self.status = 0
+        self.aa1.returnPressed.connect(lambda : self.send(1))
+        self.aa2.returnPressed.connect(lambda : self.send(2))
+        self.aa3.returnPressed.connect(lambda : self.send(3))
 
+    def eventFilter(self, s, e):
 
+        return super(Main, self).eventFilter(s, e)
 
     def maxmin(self):
         if self.status:
@@ -134,6 +139,7 @@ class Main(QtWidgets.QWidget):
                 self.a1.append(f"""<span style='font-size:8pt;color:#9F9F9F;' >{datetime.datetime.now().strftime("%H:%M:%S")}</span> <b><i><u>Customer</u> : </i></b>  {self.qts1[self.s1Status][1]}<br>""")
             else:
                 self.s1.setEnabled(False)
+                self.aa1.setText("Conversation Ended ...")
                 self.aa1.setEnabled(False)
                 self.s1finished = True
 
@@ -146,6 +152,7 @@ class Main(QtWidgets.QWidget):
             else:
 
                 self.s2.setEnabled(False)
+                self.aa2.setText("Conversation Ended ...")
                 self.aa2.setEnabled(False)
                 self.s2finished = True
         if q == 3:
@@ -158,6 +165,7 @@ class Main(QtWidgets.QWidget):
             else:
 
                 self.s3.setEnabled(False)
+                self.aa3.setText("Conversation Ended ...")
                 self.aa3.setEnabled(False)
                 self.s3finished = True
 
@@ -178,37 +186,46 @@ class Main(QtWidgets.QWidget):
 
                 cnx = conn()
                 cur = cnx.cursor()
-                cur.execute(f"select count(id) from Agents where fullName like '{name}';")
-                agId = int(cur.fetchone()[0])
+                cur.execute(f"select id from Agents where fullName like '{name}';")
+                agId = cur.fetchone()
+                print(agId)
                 if not agId:
                     cur.execute(f"insert into Agents (fullName) value('{name}');")
                     cnx.commit()
                     cur.execute('select max(id) from Agents;')
-                    agId = cur.fetchone()[0]
+                    agId = cur.fetchone()
 
+                agId = int(agId[0])
 
                 self.startedTime = datetime.datetime.now()
                 self.label.setText(
                         f'The Quiz for {name} Started at {self.startedTime.strftime("%d-%m-%Y %H:%M:%S")} .')
+                print(f"""insert into Quiz (agent, startTime) values({agId}, '{self.startedTime.strftime("%d-%m-%Y %H:%M:%S")}');""")
                 cur.execute(f"""insert into Quiz (agent, startTime) values({agId}, '{self.startedTime.strftime("%d-%m-%Y %H:%M:%S")}');""")
                 cnx.commit()
                 cur.execute('select max(id) from Quiz;')
                 self.currentQzId = cur.fetchone()[0]
 
                 self.aa1.setEnabled(True)
+                self.aa1.setText("")
                 self.s1.setEnabled(True)
                 self.aa2.setEnabled(True)
+                self.aa2.setText("")
                 self.s2.setEnabled(True)
                 self.aa3.setEnabled(True)
+                self.aa3.setText("")
                 self.s3.setEnabled(True)
                 self.strsbtn.setEnabled(False)
-
+                self.a1.clear()
+                self.a2.clear()
+                self.a3.clear()
                 self.a1.append(f"""<span style='font-size:8pt;color:#9F9F9F;' >{datetime.datetime.now().strftime("%H:%M:%S")}</span> <b><i><u>Customer</u> : </i></b>  {self.qts1[self.s1Status][1]}<br>""")
                 self.s1showedTime = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
                 self.a2.append(f"""<span style='font-size:8pt;color:#9F9F9F;' >{datetime.datetime.now().strftime("%H:%M:%S")}</span> <b><i><u>Customer</u> : </i></b>  {self.qts2[self.s2Status][1]}<br>""")
                 self.s2showedTime = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
                 self.a3.append(f"""<span style='font-size:8pt;color:#9F9F9F;' >{datetime.datetime.now().strftime("%H:%M:%S")}</span> <b><i><u>Customer</u> : </i></b>  {self.qts3[self.s3Status][1]}<br>""")
                 self.s3showedTime = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+                self.aa1.setFocus(True)
 
                 # else :
                 #     QtWidgets.QMessageBox.warning(self, "Can't Continue with this Name", "the Name that you're trying to use is already used please try again .")
@@ -233,10 +250,13 @@ class Main(QtWidgets.QWidget):
             self.label.setText(f'The Quiz for {self.agentName} Stopped at {self.endTime.strftime("%d-%m-%Y %H:%M:%S")}.')
             # self.Quiz.setEnabled(False)
             self.aa1.setEnabled(False)
+            self.aa1.setText("Conversation Ended ...")
             self.s1.setEnabled(False)
             self.aa2.setEnabled(False)
+            self.aa2.setText("Conversation Ended ...")
             self.s2.setEnabled(False)
             self.aa3.setEnabled(False)
+            self.aa3.setText("Conversation Ended ...")
             self.s3.setEnabled(False)
 
             self.strsbtn.setEnabled(True)
@@ -252,41 +272,50 @@ class Main(QtWidgets.QWidget):
         # print(self.self.qts1[self.s1Status][0])
         sTime = datetime.datetime.now()
         if q == 1:
-            self.a1.append(f"""<span style='font-size:8pt;color:#9F9F9F;' >{sTime.strftime("%H:%M:%S")}</span> <b><i><u>Agent</u> : </i></b>  {self.aa1.text()}<br>""")
-            cur.execute(f'''insert into ansewrs(qz, qt, qtTime, ansr, ansrTime) values (
-                    {self.currentQzId},
-                    {self.qts1[self.s1Status][0]},
-                    "{self.s1showedTime}",
-                    "{self.aa1.text()}",
-                    "{sTime.strftime("%d-%m-%Y %H:%M:%S")}"
-            )''')
-            cnx.commit()
-            self.changeQts(1)
-            self.aa1.setText("")
+            if self.aa1.text().strip() != "":
+                self.a1.append(f"""<span style='font-size:8pt;color:#9F9F9F;' >{sTime.strftime("%H:%M:%S")}</span> <b><i><u>Agent</u> : </i></b>  {self.aa1.text()}<br>""")
+                cur.execute(f'''insert into ansewrs(qz, qt, qtTime, ansr, ansrTime, cnv) values (
+                        {self.currentQzId},
+                        {self.qts1[self.s1Status][0]},
+                        "{self.s1showedTime}",
+                        "{self.aa1.text()}",
+                        "{sTime.strftime("%d-%m-%Y %H:%M:%S")}",
+                        1
+                )''')
+                cnx.commit()
+                self.aa1.setText("")
+                self.changeQts(1)
+                self.aa1.setFocus(True)
         if q == 2:
-            self.a2.append(f"""<span style='font-size:8pt;color:#9F9F9F;' >{sTime.strftime("%H:%M:%S")}</span> <b><i><u>Agent</u> : </i></b>  {self.aa2.text()}<br>""")
-            cur.execute(f'''insert into ansewrs(qz, qt, qtTime, ansr, ansrTime) values (
-                    {self.currentQzId},
-                    {self.qts2[self.s2Status][0]},
-                    "{self.s2showedTime}",
-                    "{self.aa2.text()}",
-                    "{sTime.strftime("%d-%m-%Y %H:%M:%S")}"
-            )''')
-            cnx.commit()
-            self.changeQts(2)
-            self.aa2.setText("")
+            if self.aa2.text().strip() != "":
+                self.a2.append(f"""<span style='font-size:8pt;color:#9F9F9F;' >{sTime.strftime("%H:%M:%S")}</span> <b><i><u>Agent</u> : </i></b>  {self.aa2.text()}<br>""")
+                cur.execute(f'''insert into ansewrs(qz, qt, qtTime, ansr, ansrTime, cnv) values (
+                        {self.currentQzId},
+                        {self.qts2[self.s2Status][0]},
+                        "{self.s2showedTime}",
+                        "{self.aa2.text()}",
+                        "{sTime.strftime("%d-%m-%Y %H:%M:%S")}",
+                        2
+                )''')
+                cnx.commit()
+                self.aa2.setText("")
+                self.changeQts(2)
+                self.aa2.setFocus(True)
         if q == 3:
-            self.a3.append(f"""<span style='font-size:8pt;color:#9F9F9F;' >{sTime.strftime("%H:%M:%S")}</span> <b><i><u>Agent</u> : </i></b>  {self.aa3.text()}<br>""")
-            cur.execute(f'''insert into ansewrs(qz, qt, qtTime, ansr, ansrTime) values (
-                    {self.currentQzId},
-                    {self.qts3[self.s3Status][0]},
-                    "{self.s3showedTime}",
-                    "{self.aa3.text()}",
-                    "{sTime.strftime("%d-%m-%Y %H:%M:%S")}"
-            )''')
-            cnx.commit()
-            self.changeQts(3)
-            self.aa3.setText("")
+            if self.aa3.text().strip() != "":
+                self.a3.append(f"""<span style='font-size:8pt;color:#9F9F9F;' >{sTime.strftime("%H:%M:%S")}</span> <b><i><u>Agent</u> : </i></b>  {self.aa3.text()}<br>""")
+                cur.execute(f'''insert into ansewrs(qz, qt, qtTime, ansr, ansrTime, cnv) values (
+                        {self.currentQzId},
+                        {self.qts3[self.s3Status][0]},
+                        "{self.s3showedTime}",
+                        "{self.aa3.text()}",
+                        "{sTime.strftime("%d-%m-%Y %H:%M:%S")}",
+                        3
+                )''')
+                cnx.commit()
+                self.aa3.setText("")
+                self.changeQts(3)
+                self.aa3.setFocus(True)
         cnx.close()
 
         self.end()

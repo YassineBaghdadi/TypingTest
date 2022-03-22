@@ -22,26 +22,17 @@ class Main(QtWidgets.QWidget):
         self.agntsIDs = {}
         self.refreshAg()
         self.agnts.currentTextChanged.connect(self.refreshQz)
+        self.qzs.currentTextChanged.connect(self.showInfo)
+        self.frame_5.setEnabled(False)
+        self.groupBox.setTitle('Evaluating The Quiz : (CLOSED)')
+        self.groupBox.setStyleSheet('QGroupBox:title {'
+                 'subcontrol-origin: margin;'
+                 'subcontrol-position: top center;'
+                 'padding-left: 10px;'
+                 'padding-right: 10px; }')
 
-    def show(self):
-        if self.qzs.currentText() not in ["Choose Quiz ...", "there are no Quiz to select ..."]:
-            cnx = conn()
-            cur = cnx.cursor()
 
-            cur.execute(f"""select q.di, a.fullName, q.startTime, q.endTime, q.duration, q.result, q.note from quiz q inner join agents a on q.agent = a.id where agent = {int(self.agntsIDs[self.agnts.currentText()])}""")
-            quizInfo = [i for i in cur.fetchone()]
-
-            self.qzinfo.clear()
-            self.qzinfo.setRowCount(1)
-            self.qzinfo.setColumnCount(len(quizInfo))
-            self.qzinfo.setHorizontalHeaderLabels(
-                [i for i in "Quiz Id.Full Name.Start Time.End Time.Duration.Result.Note".split('.')])
-
-            [self.qzinfo.horizontalHeader().setSectionResizeMode(i, QtWidgets.QHeaderView.Stretch) for i in self.qzinfo.columnCount()]
-            for i in enumerate(quizInfo):
-                self.qzinfo.setItem(0, cidx, QtWidgets.QTableWidgetItem(str(v))) #todo contuned 
-
-            cnx.close()
+        self.evlt.clicked.connect(self.evaluate)
 
     def refreshAg(self):
         cnx = conn()
@@ -53,6 +44,7 @@ class Main(QtWidgets.QWidget):
             agnts.append(i[1])
         self.agnts.clear()
         self.agnts.addItems(["Choose Agent ..."] + agnts)
+        self.agnts.setCurrentIndex(0)
 
         cnx.close()
 
@@ -64,11 +56,97 @@ class Main(QtWidgets.QWidget):
             cur.execute(f'select startTime from quiz where agent = {int(self.agntsIDs[self.agnts.currentText()])};')
             self.qzs.clear()
             self.qzs.addItems(["Choose Quiz ..."] + [i[0] for i in cur.fetchall()])
+            self.qzs.setCurrentIndex(0)
             cnx.close()
         else:
             self.qzs.clear()
-            self.qzs.addItems(["there are no Quiz to select ..."] )
+            self.qzs.addItems(["there is Qiz to select ..."])
 
+    def evaluate(self):
+        cnx = conn()
+        cur = cnx.cursor()
+
+        cur.execute(f"update quiz set result = '{self.rslt.text()}', note = '{self.note.text()}' where id = {self.qzinfo.item(0, 0).text()}")
+        cnx.commit()
+
+        cnx.close()
+        self.rslt.setText("")
+        self.note.setText("")
+        self.showInfo()
+
+    def showInfo(self):
+
+        if self.qzs.currentText() and self.qzs.currentText() not in ["Choose Quiz ...", "there are no Quiz to select ..."] and self.agnts.currentText() != "Choose Agent ...":
+            cnx = conn()
+            cur = cnx.cursor()
+
+            cur.execute(f"""select q.id, a.fullName, q.startTime, q.endTime, q.duration, q.result, q.note from quiz q inner join agents a on q.agent = a.id where q.agent = {int(self.agntsIDs[self.agnts.currentText()])} and q.startTime like '{self.qzs.currentText()}';""")
+            quizInfo = [i for i in cur.fetchone()]
+
+            self.qzinfo.clear()
+            self.qzinfo.setRowCount(1)
+            self.qzinfo.setColumnCount(len(quizInfo))
+            self.qzinfo.setHorizontalHeaderLabels(
+                [i for i in "Quiz Id.Full Name.Start Time.End Time.Duration.Result.Note".split('.')])
+
+            [self.qzinfo.horizontalHeader().setSectionResizeMode(i, QtWidgets.QHeaderView.Stretch) for i in range(self.qzinfo.columnCount())]
+            for i, v in enumerate(quizInfo):
+                self.qzinfo.setItem(0, i, QtWidgets.QTableWidgetItem(str(v)))
+
+            # print(type(quizInfo[-2]))
+            if quizInfo[-2]:
+                self.frame_5.setEnabled(False)
+                self.groupBox.setTitle('Evaluating The Quiz : (CLOSED)')
+            else :
+                self.frame_5.setEnabled(True)
+                self.groupBox.setTitle('Evaluating The Quiz :')
+
+            cur.execute(f'select id from quiz where agent = {int(self.agntsIDs[self.agnts.currentText()])} and startTime like "{self.qzs.currentText()}"')
+            TheQz = int(cur.fetchone()[0])
+            cur.execute(f"""select q.qt, a.qtTime, a.ansr, a.ansrTime, a.cnv from ansewrs a inner join qts q on a.qt = q.id where a.qz = {TheQz};""")
+            data = [[j for j in i] for i in cur.fetchall()]
+            # print(data)
+            cnv1 = [[j for j in i] for i in data if int(i[4]) == 1]
+            # print(cnv1)
+            cnv2 = [[j for j in i] for i in data if int(i[4]) == 2]
+            cnv3 = [[j for j in i] for i in data if int(i[4]) == 3]
+            self.a1.clear()
+            self.a2.clear()
+            self.a3.clear()
+            for i in cnv1:
+                self.a1.append(f"""<span style='font-size:8pt;color:#9F9F9F;'>{i[1].split(' ')[1]}</span> <b><i><u>Customer</u> : </i></b>  {i[0]}<br>""")
+                self.a1.append(f"""<span style='font-size:8pt;color:#9F9F9F;'>{i[3].split(' ')[1]}</span> <b><i><u>Agent</u> : </i></b>  {i[2]}<br>""")
+            for i in cnv2:
+                self.a2.append(f"""<span style='font-size:8pt;color:#9F9F9F;'>{i[1].split(' ')[1]}</span> <b><i><u>Customer</u> : </i></b>  {i[0]}<br>""")
+                self.a2.append(f"""<span style='font-size:8pt;color:#9F9F9F;'>{i[3].split(' ')[1]}</span> <b><i><u>Agent</u> : </i></b>  {i[2]}<br>""")
+            for i in cnv3:
+                self.a3.append(f"""<span style='font-size:8pt;color:#9F9F9F;'>{i[1].split(' ')[1]}</span> <b><i><u>Customer</u> : </i></b>  {i[0]}<br>""")
+                self.a3.append(f"""<span style='font-size:8pt;color:#9F9F9F;'>{i[3].split(' ')[1]}</span> <b><i><u>Agent</u> : </i></b>  {i[2]}<br>""")
+
+            cur.execute(f"select q.subjct from ansewrs a inner join qts q on a.qt = q.id where a.qz = {TheQz} and a.cnv = 1 ")
+
+            self.label_3.setText(cur.fetchone()[0])
+            cur.execute(f"select q.subjct from ansewrs a inner join qts q on a.qt = q.id where a.qz = {TheQz} and a.cnv = 2 ")
+
+            self.label_4.setText(cur.fetchone()[0])
+
+            cur.execute(f"select q.subjct from ansewrs a inner join qts q on a.qt = q.id where a.qz = {TheQz} and a.cnv = 3 ")
+
+            self.label_5.setText(cur.fetchone()[0])
+
+
+            cnx.close()
+
+        else:
+            self.qzinfo.clear()
+            self.a1.clear()
+            self.a2.clear()
+            self.a3.clear()
+            self.label_3.setText("Conversation 1")
+            self.label_4.setText("Conversation 2")
+            self.label_5.setText("Conversation 3")
+            self.frame_5.setEnabled(False)
+            self.groupBox.setTitle('Evaluating The Quiz : (CLOSED)')
 
     def maxmin(self):
         if self.status:
@@ -92,10 +170,11 @@ class Main(QtWidgets.QWidget):
         p.end()
 
     def mousePressEvent(self, event):
-            if event.button() == QtCore.Qt.LeftButton:
-                self.offset = event.pos()
-            else:
-                super().mousePressEvent(event)
+        if event.button() == QtCore.Qt.LeftButton:
+            self.offset = event.pos()
+
+        else:
+            super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
             if self.offset is not None and event.buttons() == QtCore.Qt.LeftButton:

@@ -487,6 +487,21 @@ border-radius : 4px;</string>
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>aa1</tabstop>
+  <tabstop>aa2</tabstop>
+  <tabstop>aa3</tabstop>
+  <tabstop>strsbtn</tabstop>
+  <tabstop>a1</tabstop>
+  <tabstop>min</tabstop>
+  <tabstop>s1</tabstop>
+  <tabstop>a2</tabstop>
+  <tabstop>max</tabstop>
+  <tabstop>s2</tabstop>
+  <tabstop>a3</tabstop>
+  <tabstop>cls</tabstop>
+  <tabstop>s3</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
