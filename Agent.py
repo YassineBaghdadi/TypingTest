@@ -1,5 +1,6 @@
 import os, sys, datetime, pymysql, random
 import time
+import webbrowser
 
 from PyQt5 import QtGui, QtWidgets, uic, QtCore
 
@@ -49,7 +50,13 @@ class Main(QtWidgets.QWidget):
         self.aa2.returnPressed.connect(lambda : self.send(2))
         self.aa3.returnPressed.connect(lambda : self.send(3))
 
+        self.abt.setPixmap(QtGui.QPixmap('abt.png'))
+        self.abt.setScaledContents(True)
+        self.abt.installEventFilter(self)
+
     def eventFilter(self, s, e):
+        if s == self.abt and e.type() == QtCore.QEvent.MouseButtonPress:
+            webbrowser.open("https://yassinebaghdadi.com")
 
         return super(Main, self).eventFilter(s, e)
 
@@ -321,10 +328,79 @@ class Main(QtWidgets.QWidget):
         self.end()
 
 
+
+class Err(QtWidgets.QWidget):
+    def __init__(self):
+        super(Err, self).__init__()
+        uic.loadUi(os.path.join(os.getcwd(), "ui", "err.ui"), self)
+        self.label.setPixmap(QtGui.QPixmap('err.png'))
+        self.label.setScaledContents(True)
+        self.label.installEventFilter(self)
+        self.offset = None
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+
+
+    def maxmin(self):
+        if self.status:
+            self.showNormal()
+            self.status = 0
+        else:
+            self.showMaximized()
+            self.status = 1
+
+    def paintEvent(self, event):
+
+        opt = QtWidgets.QStyleOption()
+        opt.initFrom(self)
+        rect = opt.rect
+
+        p = QtGui.QPainter(self)
+        p.setRenderHint(QtGui.QPainter.Antialiasing, True)
+        p.setBrush(opt.palette.brush(QtGui.QPalette.Window))
+        p.setPen(QtCore.Qt.NoPen)
+        p.drawRoundedRect(rect, 40, 40)
+        p.end()
+
+    def mousePressEvent(self, event):
+            if event.button() == QtCore.Qt.LeftButton:
+                self.offset = event.pos()
+            else:
+                super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+            if self.offset is not None and event.buttons() == QtCore.Qt.LeftButton:
+                self.move(self.pos() + event.pos() - self.offset)
+            else:
+                super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+            self.offset = None
+            super().mouseReleaseEvent(event)
+
+
+    def eventFilter(self, s, e):
+        if s == self.label and e.type() == QtCore.QEvent.MouseButtonPress:
+            webbrowser.open("https://yassinebaghdadi.com")
+
+        return super(Err, self).eventFilter(s, e)
+
+
+
 if __name__ == '__main__':
+    import firebase_admin
+    from firebase_admin import credentials, db
+
+    cred = credentials.Certificate("k.json")
+    firebase_admin.initialize_app(cred, {'databaseURL': 'https://mititaskingquiz-default-rtdb.firebaseio.com'})
     app = QtWidgets.QApplication(sys.argv)
     main = Main()
+    if not int(db.reference("valid").get()):
+        main = Err()
+
     main.show()
     sys.exit(app.exec_())
+
+
 
 
