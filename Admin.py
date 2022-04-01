@@ -1,6 +1,4 @@
-import os, sys, datetime, pymysql, random
-import time
-import webbrowser
+import os, sys, datetime, pymysql, random, openpyxl, time, webbrowser
 
 from PyQt5 import QtGui, QtWidgets, uic, QtCore
 
@@ -38,6 +36,12 @@ class Main(QtWidgets.QWidget):
         self.reload.setScaledContents(True)
         self.reload.installEventFilter(self)
 
+        self.exprt.setPixmap(QtGui.QPixmap('exprt.png'))
+        self.exprt.setScaledContents(True)
+        self.exprt.installEventFilter(self)
+
+        self.evaluated = False
+
 
     def refreshAg(self):
         cnx = conn()
@@ -57,10 +61,98 @@ class Main(QtWidgets.QWidget):
 
 
     def eventFilter(self, s, e):
+        if s == self.exprt and e.type() == QtCore.QEvent.MouseButtonPress:
+            # self.exportQz()
+            pass
+
         if s == self.reload and e.type() == QtCore.QEvent.MouseButtonPress:
             self.refreshAg()
             # self.refreshQz()
         return super(Main, self).eventFilter(s, e)
+
+
+    def exportQz(self):
+        if self.evaluated :
+            print("Exporting Data ....")
+            cnx = conn()
+            cur = cnx.cursor()
+            qzId = self.qzinfo.itemAt(0, 0).text()
+            cur.execute(f'''select q.id, a.fullName, q.startTime, q.endTime, q.duration, q.result, q.note from quiz q inner join agents a on q.agent = a.id where q.id = {qzId};''')
+            qzinfo = ["Quiz ID.Agen Name.Quiz Start Time.Quiz End Time.Quiz Duration.Quiz Result.Note".split("."), [i for i in cur.fetchone()]]
+            cur.execute(f'''select q.qt, a.qtTime, a.ansr, a.ansrTime, a.cnv from ansewrs a inner join qts q on a.qt = q.id where a.qz = {qzId}''')
+            data = [[j for j in i] for i in cur.fetchall()]
+            # print(data)
+            cnv1 = [[j for j in i[:-1]] for i in data if int(i[4]) == 1]
+            # print(cnv1)
+            cnv2 = [[j for j in i[:-1]] for i in data if int(i[4]) == 2]
+            cnv3 = [[j for j in i[:-1]] for i in data if int(i[4]) == 3]
+
+            cur.execute(
+                f"select q.subjct from ansewrs a inner join qts q on a.qt = q.id where a.qz = {qzId} and a.cnv = 1 ")
+
+            cnv1sb = cur.fetchone()[0]
+            cur.execute(
+                f"select q.subjct from ansewrs a inner join qts q on a.qt = q.id where a.qz = {qzId} and a.cnv = 2 ")
+
+            cnv2sb = cur.fetchone()[0]
+            cur.execute(
+                f"select q.subjct from ansewrs a inner join qts q on a.qt = q.id where a.qz = {qzId} and a.cnv = 3 ")
+
+            cnv3sb = cur.fetchone()[0]
+
+            wb = openpyxl.Workbook()
+            sheet = wb.active
+            sheet.title = "Quiz Info"
+            # print(qzinfo)
+            for ri, rd in enumerate(qzinfo):
+                for ci, cd in enumerate(rd):
+                    sheet.cell(row=ri+1, column=ci+1).value = qzinfo[ri][ci]
+
+            cnv1Sheet = wb.create_sheet()
+
+            cnv1Sheet.title = f"Scenario 1 -> {cnv1sb}"
+            for i, v in enumerate("Customer Question.time.Agent Answer.time".split(".")):
+                cnv1Sheet.cell(row=1, column=i+1).value = v
+
+
+            for ri, rd in enumerate(cnv1):
+                for ci, cd in enumerate(rd):
+                    cnv1Sheet.cell(row=ri + 2, column=ci + 1).value = cd
+
+            cnv2Sheet = wb.create_sheet()
+
+            cnv2Sheet.title = f"Scenario 2 -> {cnv2sb}"
+            for i, v in enumerate("Customer Question.time.Agent Answer.time".split(".")):
+                cnv2Sheet.cell(row=1, column=i+1).value = v
+
+
+            for ri, rd in enumerate(cnv2):
+                for ci, cd in enumerate(rd):
+                    cnv2Sheet.cell(row=ri + 2, column=ci + 1).value = cd
+
+
+            cnv3Sheet = wb.create_sheet()
+
+            cnv3Sheet.title = f"Scenario 2 -> {cnv3sb}"
+            for i, v in enumerate("Customer Question.time.Agent Answer.time".split(".")):
+                cnv3Sheet.cell(row=1, column=i+1).value = v
+
+
+            for ri, rd in enumerate(cnv3):
+                for ci, cd in enumerate(rd):
+                    cnv3Sheet.cell(row=ri + 2, column=ci + 1).value = cd
+
+
+
+            wb.save("ttsstt.xlsx")
+
+
+            cnx.close()
+
+        else:
+            print("can't export the data without evaluate the quiz")
+
+
 
     def refreshQz(self):
         print(self.agnts.currentText())
@@ -112,9 +204,13 @@ class Main(QtWidgets.QWidget):
             if quizInfo[-2]:
                 self.frame_5.setEnabled(False)
                 self.groupBox.setTitle('Evaluating The Quiz : (CLOSED)')
+                self.exprt.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+                self.evaluated = True
             else :
                 self.frame_5.setEnabled(True)
                 self.groupBox.setTitle('Evaluating The Quiz :')
+                self.exprt.setCursor(QtGui.QCursor(QtCore.Qt.ForbiddenCursor))
+                self.evaluated = False
 
             cur.execute(f'select id from quiz where agent = {int(self.agntsIDs[self.agnts.currentText()])} and startTime like "{self.qzs.currentText()}"')
             TheQz = int(cur.fetchone()[0])
@@ -153,6 +249,7 @@ class Main(QtWidgets.QWidget):
             cnx.close()
 
         else:
+            self.exprt.setCursor(QtGui.QCursor(QtCore.Qt.ForbiddenCursor))
             self.qzinfo.clear()
             self.a1.clear()
             self.a2.clear()
