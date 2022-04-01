@@ -90,7 +90,7 @@ class Main(QtWidgets.QWidget):
 
     def showInfo(self):
 
-        if self.qzs.currentText() and self.qzs.currentText() not in ["Choose Quiz ...", "there are no Quiz to select ...", "", " "] and self.agnts.currentText() in ["Choose Agent ...", "", " "]:
+        if self.qzs.currentText() and self.qzs.currentText() not in ["Choose Quiz ...", "there are no Quizzes to select ...", "", " "] and self.agnts.currentText() != "Choose Agent ...":
             cnx = conn()
             cur = cnx.cursor()
 
