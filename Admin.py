@@ -141,10 +141,16 @@ class Main(QtWidgets.QWidget):
             for ri, rd in enumerate(cnv3):
                 for ci, cd in enumerate(rd):
                     cnv3Sheet.cell(row=ri + 2, column=ci + 1).value = cd
+            print(f"qz{self.qzinfo.itemAt(0, 0).text()}-{self.qzinfo.itemAt(0, 1).text()}-{self.qzinfo.itemAt(0, 2).text()}.xlsx")
+            fileName, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save Back up file ...",
+                                                                f"qz{qzinfo[1][0]}-{qzinfo[1][1]}-{qzinfo[1][2].replace(':', '-')}.xlsx",
+                                                                "EXCEL Files (*.xlsx)")
 
+            if fileName:
+                if not fileName.split(".")[-1] == "xlsx":
+                    fileName += ".xlsx"
 
-
-            wb.save("ttsstt.xlsx")
+                wb.save(fileName)
 
 
             cnx.close()
