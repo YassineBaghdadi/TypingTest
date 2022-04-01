@@ -188,8 +188,6 @@ class Main(QtWidgets.QWidget):
             super().mouseReleaseEvent(event)
 
 
-
-
 class Err(QtWidgets.QWidget):
     def __init__(self):
         super(Err, self).__init__()
