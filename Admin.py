@@ -34,12 +34,17 @@ class Main(QtWidgets.QWidget):
 
 
         self.evlt.clicked.connect(self.evaluate)
+        self.reload.setPixmap(QtGui.QPixmap('rld.png'))
+        self.reload.setScaledContents(True)
+        self.reload.installEventFilter(self)
+
 
     def refreshAg(self):
         cnx = conn()
         cur = cnx.cursor()
         cur.execute(f"""select * from agents;""")
         agnts = []
+        self.agntsIDs.clear()
         for i in cur.fetchall():
             self.agntsIDs[i[1]] = i[0]
             agnts.append(i[1])
@@ -50,8 +55,16 @@ class Main(QtWidgets.QWidget):
         cnx.close()
 
 
+
+    def eventFilter(self, s, e):
+        if s == self.reload and e.type() == QtCore.QEvent.MouseButtonPress:
+            self.refreshAg()
+            # self.refreshQz()
+        return super(Main, self).eventFilter(s, e)
+
     def refreshQz(self):
-        if self.agnts.currentText() != "Choose Agent ...":
+        print(self.agnts.currentText())
+        if self.agnts.currentText() != "Choose Agent ..." and self.agnts.currentText() != "":
             cnx = conn()
             cur = cnx.cursor()
             cur.execute(f'select startTime from quiz where agent = {int(self.agntsIDs[self.agnts.currentText()])};')
@@ -61,7 +74,7 @@ class Main(QtWidgets.QWidget):
             cnx.close()
         else:
             self.qzs.clear()
-            self.qzs.addItems(["there is Qiz to select ..."])
+            self.qzs.addItems(["there are no Quizzes to select ..."])
 
     def evaluate(self):
         cnx = conn()
@@ -77,11 +90,12 @@ class Main(QtWidgets.QWidget):
 
     def showInfo(self):
 
-        if self.qzs.currentText() and self.qzs.currentText() not in ["Choose Quiz ...", "there are no Quiz to select ..."] and self.agnts.currentText() != "Choose Agent ...":
+        if self.qzs.currentText() and self.qzs.currentText() not in ["Choose Quiz ...", "there are no Quiz to select ...", "", " "] and self.agnts.currentText() in ["Choose Agent ...", "", " "]:
             cnx = conn()
             cur = cnx.cursor()
 
-            cur.execute(f"""select q.id, a.fullName, q.startTime, q.endTime, q.duration, q.result, q.note from quiz q inner join agents a on q.agent = a.id where q.agent = {int(self.agntsIDs[self.agnts.currentText()])} and q.startTime like '{self.qzs.currentText()}';""")
+            cur.execute(f"""select q.id, a.fullName, q.startTime, q.endTime, q.duration, q.result, q.note from quiz q inner join agents a on q.agent = a.id 
+            where q.agent = {int(self.agntsIDs[self.agnts.currentText()])} and q.startTime like '{self.qzs.currentText()}';""")
             quizInfo = [i for i in cur.fetchone()]
 
             self.qzinfo.clear()
@@ -198,6 +212,8 @@ class Err(QtWidgets.QWidget):
         self.offset = None
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
+
+
 
 
     def maxmin(self):
