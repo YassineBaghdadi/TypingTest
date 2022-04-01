@@ -133,7 +133,7 @@ class Main(QtWidgets.QWidget):
 
             cnv3Sheet = wb.create_sheet()
 
-            cnv3Sheet.title = f"Scenario 2 -> {cnv3sb}"
+            cnv3Sheet.title = f"Scenario 3 -> {cnv3sb}"
             for i, v in enumerate("Customer Question.time.Agent Answer.time".split(".")):
                 cnv3Sheet.cell(row=1, column=i+1).value = v
 
