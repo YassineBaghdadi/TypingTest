@@ -62,8 +62,8 @@ class Main(QtWidgets.QWidget):
 
     def eventFilter(self, s, e):
         if s == self.exprt and e.type() == QtCore.QEvent.MouseButtonPress:
-            # self.exportQz()
-            pass
+            self.exportQz()
+            # pass
 
         if s == self.reload and e.type() == QtCore.QEvent.MouseButtonPress:
             self.refreshAg()
