@@ -573,7 +573,7 @@ border-radius : 5px;</string>
         <item>
          <widget class="QLabel" name="exprt">
           <property name="enabled">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
           <property name="minimumSize">
            <size>
@@ -588,7 +588,7 @@ border-radius : 5px;</string>
            </size>
           </property>
           <property name="cursor">
-           <cursorShape>ForbiddenCursor</cursorShape>
+           <cursorShape>PointingHandCursor</cursorShape>
           </property>
           <property name="styleSheet">
            <string notr="true">background-color: none;</string>

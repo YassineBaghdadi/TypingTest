@@ -72,7 +72,8 @@ class Main(QtWidgets.QWidget):
 
 
     def exportQz(self):
-        if self.evaluated :
+        # print(self.exprt.isEnabled())
+        if self.exprt.isEnabled() :
             print("Exporting Data ....")
             cnx = conn()
             cur = cnx.cursor()
@@ -82,10 +83,10 @@ class Main(QtWidgets.QWidget):
             cur.execute(f'''select q.qt, a.qtTime, a.ansr, a.ansrTime, a.cnv from ansewrs a inner join qts q on a.qt = q.id where a.qz = {qzId}''')
             data = [[j for j in i] for i in cur.fetchall()]
             # print(data)
-            cnv1 = [[j for j in i[:-1]] for i in data if int(i[4]) == 1]
+            cnv1 = [[j for j in i[:-1]]+[time.strftime('%H:%M:%S', time.gmtime((datetime.datetime.strptime(i[3], "%d-%m-%Y %H:%M:%S") - datetime.datetime.strptime(i[1], "%d-%m-%Y %H:%M:%S")).total_seconds()))] for i in data if int(i[4]) == 1]
             # print(cnv1)
-            cnv2 = [[j for j in i[:-1]] for i in data if int(i[4]) == 2]
-            cnv3 = [[j for j in i[:-1]] for i in data if int(i[4]) == 3]
+            cnv2 = [[j for j in i[:-1]]+[time.strftime('%H:%M:%S', time.gmtime((datetime.datetime.strptime(i[3], "%d-%m-%Y %H:%M:%S") - datetime.datetime.strptime(i[1], "%d-%m-%Y %H:%M:%S")).total_seconds()))] for i in data if int(i[4]) == 2]
+            cnv3 = [[j for j in i[:-1]]+[time.strftime('%H:%M:%S', time.gmtime((datetime.datetime.strptime(i[3], "%d-%m-%Y %H:%M:%S") - datetime.datetime.strptime(i[1], "%d-%m-%Y %H:%M:%S")).total_seconds()))] for i in data if int(i[4]) == 3]
 
             cur.execute(
                 f"select q.subjct from ansewrs a inner join qts q on a.qt = q.id where a.qz = {qzId} and a.cnv = 1 ")
@@ -109,9 +110,9 @@ class Main(QtWidgets.QWidget):
                     sheet.cell(row=ri+1, column=ci+1).value = qzinfo[ri][ci]
 
             cnv1Sheet = wb.create_sheet()
-
+            header = "Customer Question.time.Agent Answer.time.Duration".split(".")
             cnv1Sheet.title = f"Scenario 1 -> {cnv1sb}"
-            for i, v in enumerate("Customer Question.time.Agent Answer.time".split(".")):
+            for i, v in enumerate(header):
                 cnv1Sheet.cell(row=1, column=i+1).value = v
 
 
@@ -122,7 +123,7 @@ class Main(QtWidgets.QWidget):
             cnv2Sheet = wb.create_sheet()
 
             cnv2Sheet.title = f"Scenario 2 -> {cnv2sb}"
-            for i, v in enumerate("Customer Question.time.Agent Answer.time".split(".")):
+            for i, v in enumerate(header):
                 cnv2Sheet.cell(row=1, column=i+1).value = v
 
 
@@ -134,7 +135,7 @@ class Main(QtWidgets.QWidget):
             cnv3Sheet = wb.create_sheet()
 
             cnv3Sheet.title = f"Scenario 3 -> {cnv3sb}"
-            for i, v in enumerate("Customer Question.time.Agent Answer.time".split(".")):
+            for i, v in enumerate(header):
                 cnv3Sheet.cell(row=1, column=i+1).value = v
 
 
@@ -191,7 +192,7 @@ class Main(QtWidgets.QWidget):
         if self.qzs.currentText() and self.qzs.currentText() not in ["Choose Quiz ...", "there are no Quizzes to select ...", "", " "] and self.agnts.currentText() != "Choose Agent ...":
             cnx = conn()
             cur = cnx.cursor()
-
+            self.exprt.setEnabled(True)
             cur.execute(f"""select q.id, a.fullName, q.startTime, q.endTime, q.duration, q.result, q.note from quiz q inner join agents a on q.agent = a.id 
             where q.agent = {int(self.agntsIDs[self.agnts.currentText()])} and q.startTime like '{self.qzs.currentText()}';""")
             quizInfo = [i for i in cur.fetchone()]
@@ -210,13 +211,13 @@ class Main(QtWidgets.QWidget):
             if quizInfo[-2]:
                 self.frame_5.setEnabled(False)
                 self.groupBox.setTitle('Evaluating The Quiz : (CLOSED)')
-                self.exprt.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-                self.evaluated = True
+                # self.exprt.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
+                # self.evaluated = True
             else :
                 self.frame_5.setEnabled(True)
                 self.groupBox.setTitle('Evaluating The Quiz :')
-                self.exprt.setCursor(QtGui.QCursor(QtCore.Qt.ForbiddenCursor))
-                self.evaluated = False
+                # self.exprt.setCursor(QtGui.QCursor(QtCore.Qt.ForbiddenCursor))
+                # self.evaluated = False
 
             cur.execute(f'select id from quiz where agent = {int(self.agntsIDs[self.agnts.currentText()])} and startTime like "{self.qzs.currentText()}"')
             TheQz = int(cur.fetchone()[0])
@@ -255,7 +256,7 @@ class Main(QtWidgets.QWidget):
             cnx.close()
 
         else:
-            self.exprt.setCursor(QtGui.QCursor(QtCore.Qt.ForbiddenCursor))
+            # self.exprt.setCursor(QtGui.QCursor(QtCore.Qt.ForbiddenCursor))
             self.qzinfo.clear()
             self.a1.clear()
             self.a2.clear()
@@ -265,6 +266,7 @@ class Main(QtWidgets.QWidget):
             self.label_5.setText("Conversation 3")
             self.frame_5.setEnabled(False)
             self.groupBox.setTitle('Evaluating The Quiz : (CLOSED)')
+            self.exprt.setEnabled(False)
 
     def maxmin(self):
         if self.status:
